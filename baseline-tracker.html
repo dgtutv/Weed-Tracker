@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Baseline week</title>
+<style>
+:root{--bg:#f3f5f2;--card:#fff;--fg:#17211f;--muted:#5d6b67;--line:#d6ddd9;--pen:#1d6b66;--pen-t:#fff;--fl:#8a6414;--fl-t:#fff;--chip:#e6ece9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121917;--card:#1b2522;--fg:#e8efec;--muted:#98a8a3;--line:#2c3a36;--pen:#5fc2b8;--pen-t:#0c1513;--fl:#e0b550;--fl-t:#1a1405;--chip:#26332f}}
+:root[data-theme="dark"]{--bg:#121917;--card:#1b2522;--fg:#e8efec;--muted:#98a8a3;--line:#2c3a36;--pen:#5fc2b8;--pen-t:#0c1513;--fl:#e0b550;--fl-t:#1a1405;--chip:#26332f}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:16px;max-width:520px;margin-inline:auto}
+h1{font-size:22px;margin:4px 0 2px}
+.sub{color:var(--muted);margin:0 0 14px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h2{font-size:15px;margin:0 0 10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+button{font:inherit;color:inherit;cursor:pointer}
+.seg button{padding:16px 8px;border-radius:12px;border:2px solid var(--line);background:var(--card);font-weight:600;font-size:17px}
+.seg button.on[data-t="pen"]{background:var(--pen);color:var(--pen-t);border-color:var(--pen)}
+.seg button.on[data-t="flower"]{background:var(--fl);color:var(--fl-t);border-color:var(--fl)}
+.lab{font-size:13px;color:var(--muted);margin:10px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 14px;border-radius:999px;border:1px solid var(--line);background:var(--chip);min-height:44px}
+.chip.on{outline:2px solid var(--fg);font-weight:600}
+.drive{display:flex;align-items:center;gap:10px;margin-top:12px;min-height:44px}
+.drive input{width:22px;height:22px}
+.go{width:100%;margin-top:12px;padding:16px;border-radius:12px;border:0;font-weight:700;font-size:18px;background:var(--pen);color:var(--pen-t)}
+.go.flower{background:var(--fl);color:var(--fl-t)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.row:first-of-type{border-top:0}
+.x{border:0;background:none;color:var(--muted);font-size:20px;padding:6px 10px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:360px}
+th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:600}
+.sm{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--chip);margin-top:8px}
+textarea{width:100%;height:150px;margin-top:8px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px}
+.muted{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<h1>Baseline week</h1>
+<p class="sub">Log honestly, no judgment. This week is only for measuring.</p>
+
+<div class="card">
+  <div class="seg">
+    <button data-t="pen" class="on" id="bPen">Pen</button>
+    <button data-t="flower" id="bFl">Flower</button>
+  </div>
+  <div class="lab" id="amtLab">Puffs this time</div>
+  <div class="chips" id="amts"></div>
+  <div class="lab">What set it off? (optional)</div>
+  <div class="chips" id="tags"></div>
+  <label class="drive"><input type="checkbox" id="drv"> Driving or about to drive</label>
+  <button class="go" id="go">Log it</button>
+</div>
+
+<div class="card">
+  <h2>Today</h2>
+  <div id="today" class="muted">Nothing logged yet.</div>
+  <div id="list"></div>
+</div>
+
+<div class="card">
+  <h2>Cartridges</h2>
+  <div id="cartInfo" class="muted">Tap when you open a fresh one. The gap between taps is how long one lasts.</div>
+  <button class="sm" id="cart">Started a new cartridge</button>
+</div>
+
+<div class="card">
+  <h2>Last 7 days</h2>
+  <div class="scroll"><table id="tbl"></table></div>
+  <div id="avg" class="muted" style="margin-top:8px"></div>
+  <button class="sm" id="sum">Make summary to paste into chat</button>
+  <textarea id="out" readonly hidden></textarea>
+</div>
+
+<script>
+var K='baseline-log-v1', S={logs:[],carts:[]};
+try{var r=localStorage.getItem(K);if(r)S=JSON.parse(r)}catch(e){}
+function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
+var type='pen',amt=3,tag='';
+var OPT={pen:[1,2,3,5,8],flower:[0.1,0.25,0.5,1]};
+var TAGS=['Habit','Bored','Task break','Craving','Social','Sleep'];
+function $(i){return document.getElementById(i)}
+function dk(t){return new Date(t).toLocaleDateString('en-CA')}
+function tm(t){return new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}
+function chips(el,items,cur,fmt,cb){
+  el.innerHTML='';
+  items.forEach(function(v){var b=document.createElement('button');b.className='chip'+(v===cur?' on':'');b.textContent=fmt(v);
+    b.onclick=function(){cb(v)};el.appendChild(b)});
+}
+function drawForm(){
+  $('bPen').className=type==='pen'?'on':'';$('bFl').className=type==='flower'?'on':'';
+  $('amtLab').textContent=type==='pen'?'Puffs this time':'Grams this time (estimate)';
+  chips($('amts'),OPT[type],amt,function(v){return type==='pen'?v+(v===1?' puff':' puffs'):v+' g'},function(v){amt=v;drawForm()});
+  chips($('tags'),TAGS,tag,function(v){return v},function(v){tag=(tag===v?'':v);drawForm()});
+  $('go').className='go'+(type==='flower'?' flower':'');
+}
+document.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){type=b.dataset.t;amt=type==='pen'?3:0.25;drawForm()}});
+$('go').onclick=function(){
+  S.logs.push({t:Date.now(),type:type,amt:amt,tag:tag,drive:$('drv').checked});
+  tag='';$('drv').checked=false;save();drawForm();render();
+};
+$('cart').onclick=function(){S.carts.push(Date.now());save();render()};
+function stats(day){
+  var L=S.logs.filter(function(l){return dk(l.t)===day}).sort(function(a,b){return a.t-b.t});
+  var p=L.filter(function(l){return l.type==='pen'}),f=L.filter(function(l){return l.type==='flower'});
+  return{L:L,ps:p.length,puffs:p.reduce(function(a,l){return a+l.amt},0),g:f.reduce(function(a,l){return a+l.amt},0),first:L.length?tm(L[0].t):'-',drv:L.filter(function(l){return l.drive}).length};
+}
+function days(){var a=[];for(var i=0;i<7;i++){var d=new Date();d.setDate(d.getDate()-i);a.push(d.toLocaleDateString('en-CA'))}return a}
+function render(){
+  var td=stats(dk(Date.now()));
+  $('today').textContent=td.L.length?td.ps+' pen sessions ('+td.puffs+' puffs), '+(Math.round(td.g*100)/100)+' g flower':'Nothing logged yet.';
+  var list=$('list');list.innerHTML='';
+  td.L.slice().reverse().forEach(function(l){
+    var row=document.createElement('div');row.className='row';
+    var s=document.createElement('span');
+    s.textContent=tm(l.t)+'  '+(l.type==='pen'?l.amt+' puffs':l.amt+' g flower')+(l.tag?', '+l.tag:'')+(l.drive?', driving':'');
+    var x=document.createElement('button');x.className='x';x.textContent='×';x.setAttribute('aria-label','Delete entry');
+    x.onclick=function(){S.logs=S.logs.filter(function(q){return q!==l&&q.t!==l.t});save();render()};
+    row.appendChild(s);row.appendChild(x);list.appendChild(row);
+  });
+  var D=days(),h='<tr><th>Day</th><th>Pen</th><th>Puffs</th><th>Flower g</th><th>First</th><th>Driving</th></tr>';
+  var tp=0,tg=0,tn=0;
+  D.forEach(function(d){var s=stats(d);if(s.L.length)tn++;tp+=s.puffs;tg+=s.g;
+    h+='<tr><td>'+d.slice(5)+'</td><td>'+s.ps+'</td><td>'+s.puffs+'</td><td>'+(Math.round(s.g*100)/100)+'</td><td>'+s.first+'</td><td>'+s.drv+'</td></tr>'});
+  $('tbl').innerHTML=h;
+  $('avg').textContent=tn?'Average over '+tn+' logged day'+(tn>1?'s':'')+': '+Math.round(tp/tn)+' puffs, '+(Math.round(tg/tn*100)/100)+' g flower per day.':'';
+  var c=S.carts;
+  if(c.length>1){var gaps=[];for(var i=1;i<c.length;i++)gaps.push((c[i]-c[i-1])/864e5);
+    $('cartInfo').textContent='Cartridges lasted about '+(Math.round(gaps.reduce(function(a,b){return a+b},0)/gaps.length*10)/10)+' days on average ('+c.length+' logged).'}
+  else if(c.length===1)$('cartInfo').textContent='New cartridge logged '+dk(c[0])+'. Tap again on the next one.';
+}
+$('sum').onclick=function(){
+  var D=days().reverse(),t='Baseline week\n';
+  D.forEach(function(d){var s=stats(d);t+=d+': pen '+s.ps+' sessions/'+s.puffs+' puffs, flower '+(Math.round(s.g*100)/100)+' g, first use '+s.first+', driving '+s.drv+'\n'});
+  t+=$('avg').textContent+'\n';
+  var tags={};S.logs.forEach(function(l){if(l.tag)tags[l.tag]=(tags[l.tag]||0)+1});
+  t+='Triggers: '+(Object.keys(tags).map(function(k){return k+' '+tags[k]}).join(', ')||'none tagged')+'\n';
+  t+='Cartridges: '+$('cartInfo').textContent;
+  var o=$('out');o.hidden=false;o.value=t;o.focus();o.select();
+  try{navigator.clipboard.writeText(t)}catch(e){}
+};
+drawForm();render();
+</script>
+</body>
+</html>
